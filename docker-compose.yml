@@ -1,0 +1,47 @@
+version: '3'
+# networks:
+#   todo:
+#     driver: bridge
+services:
+  arango:
+    image: arangodb
+    container_name: arangomusic
+    environment:
+      - ARANGO_RANDOM_ROOT_PASSWORD=1
+    #   - ME_CONFIG_MONGODB_SERVER=database
+    #   - ME_CONFIG_MONGODB_PORT=27017
+    #   - ME_CONFIG_MONGODB_ENABLE_ADMIN=false
+    #   - ME_CONFIG_MONGODB_AUTH_DATABASE=admin
+    volumes:
+      - "/tmp/arangodb:/var/lib/arangodb3"
+    # build:
+    #   context: .
+    #   dockerfile: ./Dockerfile
+    ports:
+    #   - "3000:8080"
+        - "8528:8529"
+    # command: node user/index.js
+    # networks:
+    #   - todo
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: ./api.Dockerfile
+  #   container_name: gomusic
+  #   ports:
+  #     - "8083:8083"
+  #   depends_on:
+  #     - arango
+    # volumes:
+    #   - "./main:/go/src/app/main"
+    # build:
+    #   # context: .
+    #   # dockerfile: ./Dockerfile
+    # ports:
+      # - "3001:8080"
+      # - "8081:8081"
+    # command: node tasks/index.js
+    # networks:
+    #   - todo
+    # links:
+    #   - mongo

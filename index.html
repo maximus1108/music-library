@@ -1,0 +1,50 @@
+<html>
+    <head>
+    <style>
+        * {
+            text-align: left;
+        }
+    </style>
+
+    </head>
+    <body>
+        <table style="width: 100%; margin: 50px;">
+
+        </table>
+        <script>
+            fetch('http://localhost:8083/api/artists').then(r => r.json()).then(data => {
+
+                console.log(data)
+                const headRow = document.createElement('tr')
+                const table = document.querySelector('table')
+                const headers = Object.keys(data[0]).forEach(heading => {
+                   const el = document.createElement('th');
+                   el.textContent = heading;
+                    headRow.appendChild(el)
+                })
+
+                table.appendChild(headRow)
+
+                data.forEach(data => {
+                    const row = document.createElement('tr')
+                    
+                    Object.keys(data).forEach(key => {
+                        const val = data[key]
+                        const el = document.createElement('td');
+                        el.textContent = val;
+
+                        row.appendChild(el)
+
+                    })
+
+                    table.appendChild(row)
+
+                })
+
+
+            })
+        </script>
+    </body>
+
+    
+</html>
