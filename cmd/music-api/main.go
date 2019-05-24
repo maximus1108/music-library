@@ -23,9 +23,7 @@ type artist struct {
 	Role        string            `json:"role"`
 }
 
-type routeHandler func(http.ResponseWriter, *http.Request)
-
-type routeCreater func(driver.Database) routeHandler
+type routeCreater func(driver.Database) http.HandlerFunc
 
 type track struct {
 	Key     string            `json:"_key,omitempty"`
@@ -45,11 +43,11 @@ type appearsIn struct {
 	Role string            `json:"role"`
 }
 
-func createRoute(fn routeCreater, db driver.Database) routeHandler {
+func createRoute(fn routeCreater, db driver.Database) http.HandlerFunc {
 	return fn(db)
 }
 
-func createArtist(db driver.Database) routeHandler {
+func createArtist(db driver.Database) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -98,7 +96,7 @@ func createArtist(db driver.Database) routeHandler {
 
 }
 
-func createTrack(db driver.Database) routeHandler {
+func createTrack(db driver.Database) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -168,7 +166,7 @@ func createTrack(db driver.Database) routeHandler {
 
 }
 
-func getArtists(db driver.Database) routeHandler {
+func getArtists(db driver.Database) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -205,7 +203,7 @@ func getArtists(db driver.Database) routeHandler {
 
 }
 
-func getTracks(db driver.Database) routeHandler {
+func getTracks(db driver.Database) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -213,9 +211,9 @@ func getTracks(db driver.Database) routeHandler {
 		var tracks []track
 
 		query := `
-			FOR t IN tracks
+			FOR track IN tracks
 				LET artistsByTrack=(
-					FOR artist, appears IN ANY t appearsIn
+					FOR artist, appears IN ANY track appearsIn
 					RETURN {
 						name: artist.name,
 						real_name: artist.real_name,
@@ -224,9 +222,9 @@ func getTracks(db driver.Database) routeHandler {
 					}
 				)
 				RETURN {
-					title:t.title,
+					title: track.title,
 					artists: artistsByTrack 
-			}
+				}
 		`
 
 		cursor, err := db.Query(nil, query, nil)
@@ -260,7 +258,7 @@ func getTracks(db driver.Database) routeHandler {
 
 }
 
-func databaseConnection(connectionStr string, databaseName string) (driver.Database, error) {
+func dbConnection(connectionStr string, databaseName string) (driver.Database, error) {
 
 	conn, err := arango.NewConnection(arango.ConnectionConfig{
 		Endpoints: []string{connectionStr},
@@ -294,7 +292,7 @@ func main() {
 	connectionStr := "http://localhost:8528"
 	databaseName := "music"
 
-	db, err := databaseConnection(connectionStr, databaseName)
+	db, err := dbConnection(connectionStr, databaseName)
 
 	if err != nil {
 		fmt.Printf("unable to connect to '%s' on '%s' :: %s%", databaseName, connectionStr, err)
