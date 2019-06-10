@@ -7,6 +7,10 @@ import (
 	"net/http"
 	"strings"
 
+	artistpkg "go-api/pkg/artist"
+	mydriver "go-api/pkg/driver"
+	"go-api/pkg/route"
+
 	"github.com/arangodb/go-driver"
 	arango "github.com/arangodb/go-driver/http"
 	"github.com/gorilla/handlers"
@@ -270,7 +274,7 @@ func dbConnection(connectionStr string, databaseName string) (driver.Database, e
 
 	c, err := driver.NewClient(driver.ClientConfig{
 		Connection:     conn,
-		Authentication: driver.BasicAuthentication("root", "PKjylTWeyjd1AGUX"),
+		Authentication: driver.BasicAuthentication("root", "zSzazDYepp7ngRYH"),
 	})
 
 	if err != nil {
@@ -287,30 +291,49 @@ func dbConnection(connectionStr string, databaseName string) (driver.Database, e
 
 }
 
+func createTest(db driver.Database) http.HandlerFunc {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("SHIT GURLS")
+	}
+}
+
 func main() {
 
-	connectionStr := "http://localhost:8528"
-	databaseName := "music"
+	host := "http://localhost:8528"
+	dbname := "music"
+	uname := "root"
+	pword := "zSzazDYepp7ngRYH"
 
-	db, err := dbConnection(connectionStr, databaseName)
+	db, err := mydriver.ConnectArango(host, dbname, uname, pword)
 
 	if err != nil {
-		fmt.Printf("unable to connect to '%s' on '%s' :: %s%", databaseName, connectionStr, err)
+		fmt.Printf("unable to connect to '%s' on '%s' :: %s%", dbname, uname, err)
 		// http.Error(w, err.Error(), 500)
 	}
 
 	r := mux.NewRouter().PathPrefix("/api").Subrouter()
 
-	r.HandleFunc("/artists", createRoute(getArtists, db)).
-		Methods("GET")
+	// r.HandleFunc("/artists", createRoute(getArtists, db.)).
+	// 	Methods("GET")
 
-	r.HandleFunc("/artists", createRoute(createArtist, db)).
+	aHandler := artistpkg.NewHandler(db)
+
+	r.HandleFunc("/artists", aHandler.Create).
 		Methods("POST")
 
-	r.HandleFunc("/tracks", createRoute(createTrack, db)).
-		Methods("POST")
+	// r.HandleFunc("/artists", createRoute(createArtist, db)).
+	// 	Methods("POST")
 
-	r.HandleFunc("/tracks", createRoute(getTracks, db)).
+	// r.HandleFunc("/tracks", createRoute(createTrack, db)).
+	// 	Methods("POST")
+
+	// r.HandleFunc("/tracks", createRoute(getTracks, db)).
+	// 	Methods("GET")
+
+	testRoute := route.Route{DB: db.Arango, Handler: createTest}
+
+	r.HandleFunc("/test", testRoute.CreateHandler()).
 		Methods("GET")
 
 	http.Handle("/", r)
