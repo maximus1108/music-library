@@ -314,10 +314,12 @@ func main() {
 
 	r := mux.NewRouter().PathPrefix("/api").Subrouter()
 
+	aHandler := artistpkg.NewHandler(db)
+
 	// r.HandleFunc("/artists", createRoute(getArtists, db.)).
 	// 	Methods("GET")
-
-	aHandler := artistpkg.NewHandler(db)
+	r.HandleFunc("/artists", aHandler.Fetch).
+		Methods("GET")
 
 	r.HandleFunc("/artists", aHandler.Create).
 		Methods("POST")

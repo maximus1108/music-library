@@ -58,9 +58,45 @@ func (r ArangoRepo) Create(a Artist) (Artist, error) {
 	return a, nil
 }
 
+//Fetch stuff
+func (r ArangoRepo) Fetch() ([]Artist, error) {
+
+	var a Artist
+	var artists []Artist
+	query := "FOR d IN artists RETURN d"
+
+	cursor, err := r.db.Query(nil, query, nil)
+
+	if err != nil {
+		fmt.Println("cannot get artists", err)
+		return artists, err
+	}
+
+	defer cursor.Close()
+
+	for cursor.HasMore() {
+
+		_, err := cursor.ReadDocument(nil, &a)
+
+		if err != nil {
+			fmt.Println("cannot get artist", err)
+			return artists, err
+		}
+
+		artists = append(artists, a)
+
+	}
+
+	fmt.Println(artists)
+
+	return artists, nil
+
+}
+
 //Repo stuff
 type Repo interface {
 	Create(a Artist) (Artist, error)
+	Fetch() ([]Artist, error)
 }
 
 //NewHandler stuff
@@ -77,6 +113,7 @@ type Handler struct {
 
 //Create stuff
 func (a Handler) Create(w http.ResponseWriter, r *http.Request) {
+
 	b, err := ioutil.ReadAll(r.Body)
 
 	defer r.Body.Close()
@@ -102,4 +139,17 @@ func (a Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 	a.repo.Create(data)
 
+}
+
+//Fetch stuff
+func (a Handler) Fetch(w http.ResponseWriter, r *http.Request) {
+
+	artists, err := a.repo.Fetch()
+
+	if err != nil {
+		fmt.Println("error fetching artists", err)
+
+	}
+
+	json.NewEncoder(w).Encode(artists)
 }
