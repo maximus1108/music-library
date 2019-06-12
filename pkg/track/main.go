@@ -38,7 +38,7 @@ func NewRepo(db aDriver.Database) Repo {
 //Repo stuff
 type Repo interface {
 	Create(a Track) (Track, error)
-	// Fetch() ([]Track, error)
+	Fetch() ([]Track, error)
 }
 
 //ArangoRepo stuff
@@ -97,6 +97,53 @@ func (r ArangoRepo) Create(t Track) (Track, error) {
 
 }
 
+//Fetch astuff
+func (r ArangoRepo) Fetch() ([]Track, error) {
+
+	var t Track
+	var tracks []Track
+
+	query := `
+		FOR track IN tracks
+			LET artistsByTrack=(
+				FOR artist, appears IN ANY track appearsIn
+				RETURN {
+					name: artist.name,
+					real_name: artist.real_name,
+					nationality: artist.nationality,
+					role: appears.role
+				}
+			)
+			RETURN {
+				title: track.title,
+				artists: artistsByTrack 
+			}
+	`
+
+	cursor, err := r.db.Query(nil, query, nil)
+	defer cursor.Close()
+
+	if err != nil {
+		fmt.Println("cannot get tracks", err)
+		return tracks, err
+	}
+
+	for cursor.HasMore() {
+
+		if _, err := cursor.ReadDocument(nil, &t); err != nil {
+			fmt.Println("cannot get artist", err)
+			return tracks, err
+		}
+
+		fmt.Println(t)
+
+		tracks = append(tracks, t)
+
+	}
+
+	return tracks, nil
+}
+
 //NewHandler stuff
 func NewHandler(db driver.DB) Handler {
 	return Handler{
@@ -135,5 +182,20 @@ func (t Handler) Create(w http.ResponseWriter, r *http.Request) {
 	data.Key = key
 
 	t.repo.Create(data)
+
+}
+
+//Fetch stuff
+func (t Handler) Fetch(w http.ResponseWriter, r *http.Request) {
+
+	tracks, err := t.repo.Fetch()
+
+	if err != nil {
+		fmt.Println("Error getting tracks", err)
+	}
+
+	fmt.Println(tracks)
+
+	json.NewEncoder(w).Encode(tracks)
 
 }

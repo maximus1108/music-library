@@ -66,13 +66,12 @@ func (r ArangoRepo) Fetch() ([]Artist, error) {
 	query := "FOR d IN artists RETURN d"
 
 	cursor, err := r.db.Query(nil, query, nil)
+	defer cursor.Close()
 
 	if err != nil {
 		fmt.Println("cannot get artists", err)
 		return artists, err
 	}
-
-	defer cursor.Close()
 
 	for cursor.HasMore() {
 
