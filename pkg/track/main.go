@@ -37,7 +37,7 @@ func NewRepo(db aDriver.Database) Repo {
 
 //Repo stuff
 type Repo interface {
-	Create(a Track) (Track, error)
+	Create(a Track) (Track, []error)
 	Fetch() ([]Track, error)
 }
 
@@ -47,13 +47,13 @@ type ArangoRepo struct {
 }
 
 //Create astuff
-func (r ArangoRepo) Create(t Track) (Track, error) {
+func (r ArangoRepo) Create(t Track) (Track, []error) {
 
 	tracks, err := r.db.Collection(nil, "tracks")
 
 	if err != nil {
 		fmt.Println("error finding artists collection", err)
-		return t, err
+		return t, []error{err}
 	}
 
 	artists := t.Artists
@@ -63,7 +63,7 @@ func (r ArangoRepo) Create(t Track) (Track, error) {
 
 	if err != nil {
 		fmt.Println("error creating artist", err)
-		return t, err
+		return t, []error{err}
 	}
 
 	fmt.Printf("Created document in collection '%s' in database '%s'\n", tracks.Name(), r.db.Name())
@@ -72,8 +72,10 @@ func (r ArangoRepo) Create(t Track) (Track, error) {
 
 	if err != nil {
 		fmt.Println("Could not get appearsIn edge collection", err)
-		return t, err
+		return t, []error{err}
 	}
+
+	var errors []error
 
 	for _, artist := range artists {
 
@@ -82,18 +84,19 @@ func (r ArangoRepo) Create(t Track) (Track, error) {
 			To:   meta.ID,
 			Role: artist.Role,
 		}
+
 		fmt.Println(edge, artist)
 
 		if _, err = appearsInCollection.CreateDocument(nil, edge); err != nil {
-			fmt.Println("Could not create edge", err)
-			return t, err
+			fmt.Println("Could not create edge for", artist, err)
+			errors = append(errors, err)
 		}
 
 		fmt.Printf("Edge document in collection '%s' in database '%s'\n", appearsInCollection.Name(), r.db.Name())
 
 	}
 
-	return t, nil
+	return t, errors
 
 }
 
@@ -181,7 +184,9 @@ func (t Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 	data.Key = key
 
-	t.repo.Create(data)
+	_, errs := t.repo.Create(data)
+
+	json.NewEncoder(w).Encode(errs)
 
 }
 
