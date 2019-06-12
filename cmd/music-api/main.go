@@ -10,6 +10,7 @@ import (
 	artistpkg "go-api/pkg/artist"
 	mydriver "go-api/pkg/driver"
 	"go-api/pkg/route"
+	trackpkg "go-api/pkg/track"
 
 	"github.com/arangodb/go-driver"
 	arango "github.com/arangodb/go-driver/http"
@@ -315,6 +316,7 @@ func main() {
 	r := mux.NewRouter().PathPrefix("/api").Subrouter()
 
 	aHandler := artistpkg.NewHandler(db)
+	tHandler := trackpkg.NewHandler(db)
 
 	// r.HandleFunc("/artists", createRoute(getArtists, db.)).
 	// 	Methods("GET")
@@ -327,8 +329,8 @@ func main() {
 	// r.HandleFunc("/artists", createRoute(createArtist, db)).
 	// 	Methods("POST")
 
-	// r.HandleFunc("/tracks", createRoute(createTrack, db)).
-	// 	Methods("POST")
+	r.HandleFunc("/tracks", tHandler.Create).
+		Methods("POST")
 
 	// r.HandleFunc("/tracks", createRoute(getTracks, db)).
 	// 	Methods("GET")

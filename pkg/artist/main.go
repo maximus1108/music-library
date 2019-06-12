@@ -19,7 +19,7 @@ type Artist struct {
 	Name        string             `json:"name"`
 	RealName    string             `json:"real_name"`
 	Nationality string             `json:"nationality"`
-	Role        string             `json:"role"`
+	Role        string             `json:"role,omitempty"`
 }
 
 //NewRepo stuff

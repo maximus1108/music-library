@@ -21,6 +21,13 @@ type Track struct {
 	Artists []artist.Artist    `json:"artists,omitempty"`
 }
 
+//AppearsIn Info
+type AppearsIn struct {
+	From aDriver.DocumentID `json:"_from,omitempty"`
+	To   aDriver.DocumentID `json:"_to,omitempty"`
+	Role string             `json:"role"`
+}
+
 //NewRepo stuff
 func NewRepo(db aDriver.Database) Repo {
 	return ArangoRepo{
@@ -46,7 +53,7 @@ func (r ArangoRepo) Create(t Track) (Track, error) {
 
 	if err != nil {
 		fmt.Println("error finding artists collection", err)
-		return
+		return t, err
 	}
 
 	artists := t.Artists
@@ -56,30 +63,37 @@ func (r ArangoRepo) Create(t Track) (Track, error) {
 
 	if err != nil {
 		fmt.Println("error creating artist", err)
-		return
+		return t, err
 	}
 
 	fmt.Printf("Created document in collection '%s' in database '%s'\n", tracks.Name(), r.db.Name())
 
 	appearsInCollection, err := r.db.Collection(nil, "appearsIn")
 
+	if err != nil {
+		fmt.Println("Could not get appearsIn edge collection", err)
+		return t, err
+	}
+
 	for _, artist := range artists {
-		var edge appearsIn
 
-		edge.From = artist.ID
-		edge.To = meta.ID
-		edge.Role = artist.Role
+		edge := AppearsIn{
+			From: artist.ID,
+			To:   meta.ID,
+			Role: artist.Role,
+		}
+		fmt.Println(edge, artist)
 
-		_, err = appearsInCollection.CreateDocument(nil, edge)
-
-		if err != nil {
+		if _, err = appearsInCollection.CreateDocument(nil, edge); err != nil {
 			fmt.Println("Could not create edge", err)
-			return
+			return t, err
 		}
 
 		fmt.Printf("Edge document in collection '%s' in database '%s'\n", appearsInCollection.Name(), r.db.Name())
 
 	}
+
+	return t, nil
 
 }
 
@@ -108,8 +122,7 @@ func (t Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var data Track
-	err = json.Unmarshal(b, &data)
-	if err != nil {
+	if err = json.Unmarshal(b, &data); err != nil {
 		fmt.Println(err.Error())
 		http.Error(w, err.Error(), 500)
 		return
