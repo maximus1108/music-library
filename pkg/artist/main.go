@@ -70,16 +70,14 @@ func (r ArangoRepo) Fetch() ([]Artist, error) {
 
 	if err != nil {
 		fmt.Println("cannot get artists", err)
-		return artists, err
+		return nil, err
 	}
 
 	for cursor.HasMore() {
 
-		_, err := cursor.ReadDocument(nil, &a)
-
-		if err != nil {
+		if _, err := cursor.ReadDocument(nil, &a); err != nil {
 			fmt.Println("cannot get artist", err)
-			return artists, err
+			return nil, err
 		}
 
 		artists = append(artists, a)
@@ -123,8 +121,7 @@ func (a Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var data Artist
-	err = json.Unmarshal(b, &data)
-	if err != nil {
+	if err = json.Unmarshal(b, &data); err != nil {
 		fmt.Println(err.Error())
 		http.Error(w, err.Error(), 500)
 		return
@@ -147,8 +144,11 @@ func (a Handler) Fetch(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		fmt.Println("error fetching artists", err)
-
+		json.NewEncoder(w).Encode(err)
 	}
 
-	json.NewEncoder(w).Encode(artists)
+	if err == nil {
+		fmt.Println("successfully returning artists", err)
+		json.NewEncoder(w).Encode(artists)
+	}
 }

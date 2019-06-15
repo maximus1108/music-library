@@ -17,7 +17,7 @@ func main() {
 	host := "http://localhost:8528"
 	dbname := "music"
 	uname := "root"
-	pword := "zSzazDYepp7ngRYH"
+	pword := "u9tTW65sgiW5e2GM"
 
 	db, err := driver.ConnectArango(host, dbname, uname, pword)
 

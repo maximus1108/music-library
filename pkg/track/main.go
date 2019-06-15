@@ -68,14 +68,15 @@ func (r ArangoRepo) Create(t Track) (Track, []error) {
 
 	fmt.Printf("Created document in collection '%s' in database '%s'\n", tracks.Name(), r.db.Name())
 
-	appearsInCollection, err := r.db.Collection(nil, "appearsIn")
+	appearsInCol, err := r.db.Collection(nil, "appearsIn")
 
 	if err != nil {
 		fmt.Println("Could not get appearsIn edge collection", err)
 		return t, []error{err}
 	}
 
-	var errors []error
+	var edgesCreated []string
+	var edgeErrs []error
 
 	for _, artist := range artists {
 
@@ -87,16 +88,34 @@ func (r ArangoRepo) Create(t Track) (Track, []error) {
 
 		fmt.Println(edge, artist)
 
-		if _, err = appearsInCollection.CreateDocument(nil, edge); err != nil {
-			fmt.Println("Could not create edge for", artist, err)
-			errors = append(errors, err)
+		edgeMeta, err := appearsInCol.CreateDocument(nil, edge)
+
+		if err == nil {
+			edgesCreated = append(edgesCreated, string(edgeMeta.Key))
 		}
 
-		fmt.Printf("Edge document in collection '%s' in database '%s'\n", appearsInCollection.Name(), r.db.Name())
+		if err != nil {
+
+			fmt.Println("Could not create edge for", artist, err)
+
+			edgeErrs = append(edgeErrs, err)
+
+			if _, _, err := appearsInCol.RemoveDocuments(nil, edgesCreated); err != nil {
+				edgeErrs = append(edgeErrs, err)
+			}
+
+			if _, err = tracks.RemoveDocument(nil, string(meta.Key)); err != nil {
+				edgeErrs = append(edgeErrs, err)
+			}
+
+			return t, edgeErrs
+		}
+
+		fmt.Printf("Edge document in collection '%s' in database '%s'\n", appearsInCol.Name(), r.db.Name())
 
 	}
 
-	return t, errors
+	return t, nil
 
 }
 
@@ -128,14 +147,14 @@ func (r ArangoRepo) Fetch() ([]Track, error) {
 
 	if err != nil {
 		fmt.Println("cannot get tracks", err)
-		return tracks, err
+		return nil, err
 	}
 
 	for cursor.HasMore() {
 
 		if _, err := cursor.ReadDocument(nil, &t); err != nil {
 			fmt.Println("cannot get artist", err)
-			return tracks, err
+			return nil, err
 		}
 
 		fmt.Println(t)
